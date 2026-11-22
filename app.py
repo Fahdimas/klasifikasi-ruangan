@@ -29,6 +29,20 @@ KELAS = list(model.classes_)
 HIJAU, MERAH, KUNING = (60, 200, 60), (60, 60, 230), (0, 200, 255)   # BGR
 
 
+def ambil_ice_servers():
+    """STUN gratis + TURN (kalau diisi di Secrets) supaya video bisa tembus jaringan yang ketat."""
+    servers = [{"urls": ["stun:stun.l.google.com:19302"]}]
+    try:
+        servers.append({
+            "urls": [u.strip() for u in st.secrets["TURN_URL"].split(",")],
+            "username": st.secrets["TURN_USER"],
+            "credential": st.secrets["TURN_PASS"],
+        })
+    except Exception:
+        pass   # belum ada secrets -> pakai STUN saja
+    return servers
+
+
 def prediksi(bgr):
     fitur = ekstrak_bgr(bgr)
     x = pd.DataFrame([fitur])[meta["fitur"]]          # urutan kolom HARUS sama dengan saat training
@@ -112,11 +126,9 @@ with tab_live:
     webrtc_streamer(
         key="ruangan-live",
         video_processor_factory=ProsesorRuangan,
-        rtc_configuration=RTCConfiguration(
-            {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-        ),
+        rtc_configuration=RTCConfiguration({"iceServers": ambil_ice_servers()}),
         media_stream_constraints={
-            "video": {"facingMode": "environment", "width": {"ideal": 640}},  # kamera belakang di HP
+            "video": {"facingMode": "environment", "width": {"ideal": 480}},  # kamera belakang di HP
             "audio": False,
         },
         async_processing=True,
